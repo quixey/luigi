@@ -101,7 +101,9 @@ def create_packages_archive(packages, filename):
             p = package.__path__[0]
 
             if p.endswith('.egg') and os.path.isfile(p):
-                raise 'egg files not supported!!!'
+                continue # XXX djakobsen skip .egg instead of aborting
+
+                # raise 'egg files not supported!!!'
                 # Add the entire egg file
                 # p = p[:p.find('.egg') + 4]
                 # add(dereference(p), os.path.basename(p))
