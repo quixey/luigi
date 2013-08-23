@@ -94,6 +94,7 @@ def create_packages_archive(packages, filename):
             p = package.__path__[0]
 
             if p.find('.egg') != -1:
+                continue
                 raise 'egg files not supported!!!'
                 # Add the entire egg file
                 # p = p[:p.find('.egg') + 4]
