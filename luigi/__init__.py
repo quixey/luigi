@@ -19,11 +19,14 @@ import parameter
 import configuration
 import interface
 import target
+import pigtask
+
 
 Task = task.Task
 ExternalTask = task.ExternalTask
 WrapperTask = task.WrapperTask
 Target = target.Target
+PigTask = pigtask.PigTask
 
 File = file.File  # TODO: remove, should be LocalTarget
 LocalTarget = File

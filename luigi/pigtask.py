@@ -1,14 +1,13 @@
 import subprocess
 import tempfile
-import luigi
+from luigi.task import Task
+from luigi.file import File as localTarget
 import logging
-from luigi import File
-from games_classifier import *
 
 logger = logging.getLogger('luigi-interface')
 
 
-class PigTask(luigi.Task):
+class PigTask(Task):
 
     def get_script(self):
         return ''
@@ -17,7 +16,7 @@ class PigTask(luigi.Task):
         # Setup any parameters for the script
         pig_params = []
         for param in self.script_parameters():
-            pig_params += ['-param', param]
+            pig_params += ['-p', param]
 
         temp_stdout = tempfile.TemporaryFile()
         proc = subprocess.Popen(['pig', '-f', self.get_script()] + pig_params, stdout=temp_stdout, stderr=subprocess.PIPE)
@@ -47,4 +46,4 @@ class PigTask(luigi.Task):
         return {}
 
     def output(self):
-        return luigi.LocalTarget('./output_files/%s' % self.task_id)
+        return localTarget('./output_files/%s' % self.task_id)
