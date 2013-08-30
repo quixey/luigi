@@ -27,7 +27,7 @@ class PigTask(Task):
         # Setup any parameters for the script
         pig_params = []
         for param in self.script_parameters():
-            pig_params += ['-param', param]
+            pig_params += ['-p', param]
 
         temp_stdout = tempfile.TemporaryFile()
         script = self.get_script()
@@ -62,4 +62,4 @@ class PigTask(Task):
         return {}
 
     def output(self):
-        return luigi.LocalTarget('./output_files/%s' % self.task_id)
+        return localTarget('./output_files/%s' % self.task_id)
