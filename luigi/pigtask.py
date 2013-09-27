@@ -19,7 +19,12 @@ class PigTask(Task):
             pig_params += ['-p', param]
 
         temp_stdout = tempfile.TemporaryFile()
-        proc = subprocess.Popen(['pig', '-f', self.get_script()] + pig_params, stdout=temp_stdout, stderr=subprocess.PIPE)
+        script = self.get_script()
+        if not script:
+            logging.warn('Terminating pig script as no source script was set')
+            return
+
+        proc = subprocess.Popen(['pig', '-f', script] + pig_params, stdout=temp_stdout, stderr=subprocess.PIPE)
 
         # Track the output so we can get error messages
         error_message = None
