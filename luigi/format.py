@@ -15,11 +15,40 @@
 import subprocess
 
 
+class FileWrapper(object):
+    """Wrap `file` in a "real" so stuff can be added to it after creation
+    """
+    def __init__(self, file_object):
+        self._subpipe = file_object
+
+    def __getattr__(self, name):
+        # forward calls to 'write', 'close' and other methods not defined below
+        return getattr(self._subpipe, name)
+
+    def __enter__(self, *args, **kwargs):
+        # instead of returning whatever is returned by __enter__ on the subpipe
+        # this returns self, so whatever custom injected methods are still available
+        # this might cause problems with custom file_objects, but seems to work
+        # fine with standard python `file` objects which is the only default use
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        return self._subpipe.__exit__(*args, **kwargs)
+
+    def __iter__(self):
+        return iter(self._subpipe)
+
+
 class InputPipeProcessWrapper(object):
     def __init__(self, command, input_pipe=None):
+        '''
+        @param command a subprocess.Popen instance with stdin=input_pipe and
+        stdout=subprocess.PIPE. Alternatively, just its args argument as a
+        convenience.
+        '''
         self._command = command
         self._input_pipe = input_pipe
-        self._process = subprocess.Popen(command,
+        self._process = command if isinstance(command, subprocess.Popen) else subprocess.Popen(command,
             stdin=input_pipe,
             stdout=subprocess.PIPE)
         # we want to keep a circular reference to avoid garbage collection
@@ -149,3 +178,13 @@ class Gzip(Format):
     @classmethod
     def pipe_writer(cls, output_pipe):
         return OutputPipeProcessWrapper(['gzip'], output_pipe)
+
+class Bzip2(Format):
+    @classmethod
+    def pipe_reader(cls, input_pipe):
+        return InputPipeProcessWrapper(['bzcat'], input_pipe)
+
+    @classmethod
+    def pipe_writer(cls, output_pipe):
+        return OutputPipeProcessWrapper(['bzip2'], output_pipe)
+
