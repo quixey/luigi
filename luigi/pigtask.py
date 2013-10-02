@@ -1,14 +1,28 @@
+# Copyright (c) 2013 Quixey
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 import subprocess
 import tempfile
+import logging
+
 from luigi.task import Task
 from luigi.file import File as localTarget
-import logging
+
 
 logger = logging.getLogger('luigi-interface')
 
 
 class PigTask(Task):
-
     def get_script(self):
         return ''
 
@@ -23,6 +37,8 @@ class PigTask(Task):
         if not script:
             logging.warn('Terminating pig script as no source script was set')
             return
+
+        logging.info('Running pig script %s with parameters %s' % (script, ', '.join(pig_params)))
 
         proc = subprocess.Popen(['pig', '-f', script] + pig_params, stdout=temp_stdout, stderr=subprocess.PIPE)
 
