@@ -53,8 +53,6 @@ class PigTask(Task):
             if err_line.find('ERROR ') != -1:
                 error_message = err_line
 
-        self.output().open('w').close()
-
         if proc.returncode == 0:
             return
 
