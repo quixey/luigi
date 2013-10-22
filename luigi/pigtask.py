@@ -38,7 +38,7 @@ class PigTask(Task):
             logging.warn('Terminating pig script as no source script was set')
             return
 
-        logging.info('Running pig script %s with parameters %s' % (script, ', '.join(pig_params)))
+        logger.info('Running pig script %s with parameters %s' % (script, ', '.join(pig_params)))
 
         proc = subprocess.Popen(['pig', '-f', script] + pig_params, stdout=temp_stdout, stderr=subprocess.PIPE)
 
