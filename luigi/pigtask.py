@@ -29,8 +29,8 @@ class PigTask(Task):
     def run(self):
         # Setup any parameters for the script
         pig_params = []
-        for param in self.script_parameters():
-            pig_params += ['-p', param]
+        for key, value in self.script_parameters().items():
+            pig_params += ['-p', '%s=%s' % (key, value)]
 
         temp_stdout = tempfile.TemporaryFile()
         script = self.get_script()
