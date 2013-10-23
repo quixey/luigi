@@ -56,7 +56,7 @@ deb: virtual
 			-t deb \
 			--force \
 			--prefix /\
-			--package python27-luigi-$(VERSION).deb \
+			--package python27-luigi_$(VERSION).deb \
 			--name python27-luigi \
 			--category luigi \
 			--depends python2.7 \
