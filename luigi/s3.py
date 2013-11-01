@@ -119,15 +119,20 @@ class S3Client(FileSystem):
         """
         Put an object from S3 and stores it to local path.
         """
-        (bucket, key) = self._path_to_bucket_and_key(source_s3_path)
+        (bucket, sourceKey) = self._path_to_bucket_and_key(source_s3_path)
 
         # grab and validate the bucket
         s3_bucket = self.s3.get_bucket(bucket, validate=True)
 
-        for key in s3_bucket.list():
-            path = os.path.dirname(destination_local_path + key.name)
-            if not os.path.exists(path):
-                os.makedirs(path)
+        for key in s3_bucket.list(prefix=sourceKey):
+
+            destination_path = os.path.dirname(destination_local_path + key.name)
+
+            #Make sure the local path exist
+            if not os.path.exists(destination_path):
+                os.makedirs(destination_path)
+
+            #Get the actual file
             key.get_contents_to_filename(destination_local_path + key.name)
 
     def put(self, local_path, destination_s3_path):
