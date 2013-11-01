@@ -29,8 +29,8 @@ class PigTask(Task):
     def run(self):
         # Setup any parameters for the script
         pig_params = []
-        for param in self.script_parameters():
-            pig_params += ['-p', param]
+        for key, value in self.script_parameters().items():
+            pig_params += ['-p', '%s=%s' % (key, value)]
 
         temp_stdout = tempfile.TemporaryFile()
         script = self.get_script()
@@ -38,7 +38,7 @@ class PigTask(Task):
             logging.warn('Terminating pig script as no source script was set')
             return
 
-        logging.info('Running pig script %s with parameters %s' % (script, ', '.join(pig_params)))
+        logger.info('Running pig script %s with parameters %s' % (script, ', '.join(pig_params)))
 
         proc = subprocess.Popen(['pig', '-f', script] + pig_params, stdout=temp_stdout, stderr=subprocess.PIPE)
 
