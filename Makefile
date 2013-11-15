@@ -33,6 +33,7 @@ $(VIRTUAL_LOCATION)/bin/$(PYTHON): download
 
 cleanenv:
 	@sudo rm -rf $(VIRTUAL_LOCATION)
+	rm -rf download
 
 requirements: | download
 	pip install --download-cache=download --requirement=requirements.txt
