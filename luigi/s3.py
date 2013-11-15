@@ -13,6 +13,7 @@
 # the License.
 import itertools
 import logging
+import os
 import os.path
 import random
 import tempfile
@@ -37,6 +38,9 @@ S3_DIRECTORY_MARKER_SUFFIX_1 = '/'
 logger = logging.getLogger('luigi-interface')
 
 class InvalidDeleteException(FileSystemException):
+    pass
+
+class FileNotFoundException(FileSystemException):
     pass
 
 class S3Client(FileSystem):
@@ -74,10 +78,10 @@ class S3Client(FileSystem):
 
         if self.is_dir(path):
             return True
-        
+
         logger.debug('Path %s does not exist', path)
         return False
-    
+
     def remove(self, path, recursive=True):
         """
         Remove a file or directory from S3.
@@ -112,7 +116,7 @@ class S3Client(FileSystem):
                 logger.debug('Deleting %s from bucket %s', k, bucket)
             s3_bucket.delete_keys(delete_key_list)
             return True
-        
+
         return False
 
     def get(self, destination_local_path, source_s3_path):
@@ -134,6 +138,13 @@ class S3Client(FileSystem):
 
             #Get the actual file
             key.get_contents_to_filename(destination_local_path + key.name)
+
+    def get_key(self, path):
+        (bucket, key) = self._path_to_bucket_and_key(path)
+
+        s3_bucket = self.s3.get_bucket(bucket, validate=True)
+
+        return s3_bucket.get_key(key)
 
     def put(self, local_path, destination_s3_path):
         """
@@ -203,12 +214,12 @@ class AtomicS3File(file):
     """
     def __init__(self, path, s3_client):
         self.__tmp_path = \
-            os.path.join(tempfile.gettempdir(), 
+            os.path.join(tempfile.gettempdir(),
                          'luigi-s3-tmp-%09d' % random.randrange(0, 1e10))
         self.path = path
         self.s3_client = s3_client
         super(AtomicS3File, self).__init__(self.__tmp_path, 'w')
-    
+
     def close(self):
         """
         Close the file.
@@ -217,7 +228,7 @@ class AtomicS3File(file):
 
         # store the contents in S3
         self.s3_client.put(self.__tmp_path, self.path)
-    
+
     def __del__(self):
         # remove the temporary directory
         if os.path.exists(self.__tmp_path):
@@ -229,10 +240,72 @@ class AtomicS3File(file):
             return
         return file.__exit__(self, exc_type, exc, traceback)
 
+class ReadableS3File(object):
+
+    def __init__(self, s3_key):
+        self.s3_key = s3_key
+        self.buffer = []
+
+    def read(self, size=0):
+        return self.s3_key.read(size=size)
+
+    def close(self):
+        self.s3_key.close()
+
+    def __del__(self):
+        self.close()
+
+    def __exit__(self, exc_type, exc, traceback):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def _add_to_buffer(self, line):
+        self.buffer.append(line)
+
+    def _flush_buffer(self):
+        output = ''.join(self.buffer)
+        self.buffer = []
+        return output
+
+    def __iter__(self):
+        key_iter = self.s3_key.__iter__()
+
+        has_next = True
+        while has_next:
+            try:
+                # grab the next chunk
+                chunk = key_iter.next()
+
+                # split on newlines, preserving the newline
+                for line in chunk.splitlines(True):
+
+                    if not line.endswith(os.linesep):
+                        # no newline, so store in buffer
+                        self._add_to_buffer(line)
+                    else:
+                        # newline found, send it out
+                        if self.buffer:
+                            self._add_to_buffer(line)
+                            yield self._flush_buffer()
+                        else:
+                            yield line
+            except StopIteration:
+                # send out anything we have left in the buffer
+                output = self._flush_buffer()
+                if output:
+                    yield output
+                has_next = False
+        self.close()
+
 class S3Target(FileSystemTarget):
     """
     """
-    
+
     fs = None
 
     def __init__(self, path, format=None, client=None):
@@ -247,7 +320,11 @@ class S3Target(FileSystemTarget):
             raise ValueError("Unsupported open mode '%s'" % mode)
 
         if mode == 'r':
-            raise NotImplementedError('TODO: Implement me')
+            s3_key = self.fs.get_key(self.path)
+            if s3_key:
+                return ReadableS3File(s3_key)
+            else:
+                raise FileNotFoundException("Could not find file at %s" % self.path)
         else:
             return AtomicS3File(self.path, self.fs)
 
@@ -257,6 +334,6 @@ class S3PathTask(ExternalTask):
     a path in S3.
     """
     path = Parameter()
-        
+
     def output(self):
         return S3Target(self.path)
