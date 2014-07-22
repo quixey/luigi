@@ -42,26 +42,33 @@ class PigTask(Task):
 
         logger.info('Running pig script %s with parameters %s' % (script, ', '.join(pig_params)))
 
-        proc = subprocess.Popen(['pig', '-f', script] + pig_params, stdout=temp_stdout, stderr=subprocess.PIPE)
+        def run_script(script, params):
+            proc = subprocess.Popen(['pig', '-f', script] + params, stdout=temp_stdout, stderr=subprocess.PIPE)
 
-        # Track the output so we can get error messages
-        error_message = None
-        while True:
-            if proc.poll() is not None:
-                break
-            err_line = proc.stderr.readline()
-            if err_line.strip():
-                logger.info(err_line.strip())
-            if err_line.find('ERROR ') != -1:
-                error_message = err_line
+            # Track the output so we can get error messages
+            error_message = None
+            while True:
+                if proc.poll() is not None:
+                    break
+                err_line = proc.stderr.readline()
+                if err_line.strip():
+                    logger.info(err_line.strip())
+                if err_line.find('ERROR ') != -1:
+                    error_message = err_line
 
-        if proc.returncode == 0:
-            return
+            if proc.returncode == 0:
+                return
 
-        # Try to fetch error logs if possible
-        message = 'Pig job failed with error %s. ' % error_message
+            # Try to fetch error logs if possible
+            message = 'Pig job failed with error %s. ' % error_message
 
-        raise Exception(message)
+            raise Exception(message)
+
+        logger.info("Performing dry run")
+        run_script(script, pig_params + ['-c'])
+
+        logger.info("Performing full script run")
+        run_script(script, pig_params)
 
     def script_parameters(self):
         return {}
