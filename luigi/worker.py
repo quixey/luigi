@@ -312,18 +312,6 @@ class Worker(object):
                                  params=task.to_str_params(),
                                  family=task.task_family)
 
-        # re-add task to reschedule missing dependencies
-        if missing:
-            reschedule = True
-
-            # keep out of infinite loops by not rescheduling too many times
-            for task_id in missing:
-                self.unfulfilled_counts[task_id] += 1
-                if self.unfulfilled_counts[task_id] > self.__max_reschedules:
-                    reschedule = False
-            if reschedule:
-                self.add(task)
-
         self.run_succeeded &= status == DONE
         return status
 
