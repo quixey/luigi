@@ -53,7 +53,12 @@ def send_email(subject, message, sender, recipients, image_png=None):
 
     smtp_login = config.get('core', 'smtp_login', None)
     smtp_password = config.get('core', 'smtp_password', None)
-    smtp = smtplib.SMTP(**kwargs) if not smtp_ssl else smtplib.SMTP_SSL(**kwargs)
+    try:
+        smtp = smtplib.SMTP(**kwargs) if not smtp_ssl else smtplib.SMTP_SSL(**kwargs)
+    except (socket.error, socket.gaierror) as e:
+        logger.exception(e)
+        logger.error("Failed reaching mail server at {0} port {1} ".format(smtp_host, smtp_port))
+        return
     if smtp_login and smtp_password:
         smtp.login(smtp_login, smtp_password)
 
